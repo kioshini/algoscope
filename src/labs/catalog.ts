@@ -1,0 +1,60 @@
+import type { LabEntry } from './types';
+
+export const LAB_ENTRIES: LabEntry[] = [
+  {
+    id: 'stack-operations',
+    name: 'Stack Operations',
+    family: 'Data Structure',
+    summary: 'See push, pop, and peek change a LIFO stack.',
+    lab: 'stack',
+    preset: 'push',
+  },
+  {
+    id: 'heap-insert',
+    name: 'Min Heap Insert',
+    family: 'Data Structure',
+    summary: 'Insert a value and follow it while it sifts upward.',
+    lab: 'heap',
+    preset: 'push',
+  },
+  {
+    id: 'heap-extract',
+    name: 'Min Heap Extract',
+    family: 'Data Structure',
+    summary: 'Remove the minimum and restore the heap with sift-down.',
+    lab: 'heap',
+    preset: 'extract',
+  },
+  {
+    id: 'heapify',
+    name: 'Bottom-up Heapify',
+    family: 'Data Structure',
+    summary: 'Transform an arbitrary array into a min heap.',
+    lab: 'heap',
+    preset: 'heapify',
+  },
+  {
+    id: 'bfs',
+    name: 'Breadth-First Search',
+    family: 'Graph Algorithm',
+    summary: 'Explore a graph level by level with a queue.',
+    lab: 'graph',
+    preset: 'bfs',
+  },
+  {
+    id: 'dfs',
+    name: 'Depth-First Search',
+    family: 'Graph Algorithm',
+    summary: 'Explore deep paths first with an explicit stack.',
+    lab: 'graph',
+    preset: 'dfs',
+  },
+  {
+    id: 'dijkstra',
+    name: "Dijkstra's Algorithm",
+    family: 'Graph Algorithm',
+    summary: 'Find shortest paths by relaxing non-negative weighted edges.',
+    lab: 'graph',
+    preset: 'dijkstra',
+  },
+];
