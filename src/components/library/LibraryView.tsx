@@ -24,6 +24,7 @@ import type {
 import { LANGUAGE_LABELS, sourceForAlgorithm, type SupportedLanguage } from '../../algorithms/language-sources';
 import { algorithmWorker } from '../../lib/worker-client';
 import { downloadTextFile } from '../../lib/benchmark-settings';
+import { LessonView } from '../lesson/LessonView';
 import type { JsonValue } from '../../types';
 import { localizeAlgorithm, localizeLab, useI18n, type TranslationKey } from '../../lib/i18n';
 import { useFavorites } from '../../lib/favorites';
@@ -289,110 +290,123 @@ function AlgorithmDetail({
 }) {
   const { t } = useI18n();
   const [language, setLanguage] = useState<SupportedLanguage>('python');
+  const [lessonOpen, setLessonOpen] = useState(false);
   const sourceInfo = sourceForAlgorithm(algorithm.id, algorithm.source, language);
   return (
     <article className="algorithm-detail">
-      <button className="library-back" type="button" onClick={onBack}>
-        <ArrowLeft size={15} /> {t('backToLibrary')}
-      </button>
-      <header className="algorithm-detail-header">
-        <div>
-          <span>
-            {algorithm.family} / {algorithm.level}
-          </span>
-          <h2>{algorithm.name}</h2>
-          <p>{algorithm.summary}</p>
-        </div>
-        <div className="algorithm-detail-media">
-          {algorithm.kind === 'sort' ? (
-            <Miniature values={algorithm.examples.default} />
-          ) : (
-            <ContractMark algorithm={algorithm} />
-          )}
-          <button
-            type="button"
-            className={`favorite-toggle detail ${isFavorite ? 'active' : ''}`}
-            title={isFavorite ? t('removeFavorite') : t('addFavorite')}
-            aria-label={isFavorite ? t('removeFavorite') : t('addFavorite')}
-            aria-pressed={isFavorite}
-            onClick={onToggleFavorite}
-          >
-            <Star size={14} weight={isFavorite ? 'fill' : 'regular'} />
-          </button>
-        </div>
-      </header>
-
-      <div className="complexity-specs">
-        <Spec label={t('best')} value={algorithm.complexity.best} />
-        <Spec label={t('average')} value={algorithm.complexity.average} accent />
-        <Spec label={t('worst')} value={algorithm.complexity.worst} />
-        <Spec label={t('memory')} value={algorithm.complexity.memory} />
-      </div>
-      {algorithm.complexity.note ? <p className="complexity-caveat">{algorithm.complexity.note}</p> : null}
-
-      {algorithm.kind === 'sort' ? (
-        <div className="trait-row">
-          <Trait label={t('stableTrait')} enabled={algorithm.traits.stable} />
-          <Trait label={t('inPlaceTrait')} enabled={algorithm.traits.inPlace} />
-          <Trait label={t('recursiveTrait')} enabled={algorithm.traits.recursive} />
-        </div>
-      ) : null}
-
-      {algorithm.useCases?.length ? (
-        <div className="use-cases-block">
-          <div className="use-cases-head">
-            <span className="library-label">{t('useCasesTitle')}</span>
-            {algorithm.scaleSuitability ? (
-              <span className={`scale-badge scale-${algorithm.scaleSuitability}`}>
-                {scaleLabel(algorithm.scaleSuitability, t)}
-              </span>
-            ) : null}
-          </div>
-          {algorithm.useCases.map((useCase, index) => (
-            <div className="use-case" key={index}>
-              <strong>{useCase.title}</strong>
-              <p>{useCase.context}</p>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="algorithm-explanation">
-        <span className="library-label">{t('howItWorks')}</span>
-        {algorithm.explanation.map((step, index) => (
-          <div key={step}>
-            <span>{index + 1}</span>
-            <p>{step}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="algorithm-limitation">
-        <span>{t('tradeOff')}</span>
-        <p>{algorithm.limitation}</p>
-      </div>
-
-      {algorithm.kind === 'sort' ? (
-        <div className="algorithm-actions">
-          <button className="primary-library-action" type="button" onClick={() => onOpen(algorithm)}>
-            {t('visualize')} <ArrowRight size={15} />
-          </button>
-          <button type="button" onClick={() => onCompare(algorithm)}>
-            <GitDiff size={15} /> {t('addBenchmark')}
-          </button>
-          <button type="button" onClick={() => onOpen(algorithm, algorithm.examples.worstCase)}>
-            <Flask size={15} /> {t('tryWorst')}
-          </button>
-          <button type="button" onClick={() => onAnalyze(algorithm)}>
-            <ChartLineUp size={15} /> {t('analyze')}
-          </button>
-        </div>
+      {lessonOpen ? (
+        <LessonView algorithm={algorithm} onClose={() => setLessonOpen(false)} />
       ) : (
-        <DemoRunner key={algorithm.id} algorithm={algorithm} language={language} onLanguageChange={setLanguage} />
+        <>
+          <button className="library-back" type="button" onClick={onBack}>
+            <ArrowLeft size={15} /> {t('backToLibrary')}
+          </button>
+          <header className="algorithm-detail-header">
+            <div>
+              <span>
+                {algorithm.family} / {algorithm.level}
+              </span>
+              <h2>{algorithm.name}</h2>
+              <p>{algorithm.summary}</p>
+            </div>
+            <div className="algorithm-detail-media">
+              {algorithm.kind === 'sort' ? (
+                <Miniature values={algorithm.examples.default} />
+              ) : (
+                <ContractMark algorithm={algorithm} />
+              )}
+              <button
+                type="button"
+                className={`favorite-toggle detail ${isFavorite ? 'active' : ''}`}
+                title={isFavorite ? t('removeFavorite') : t('addFavorite')}
+                aria-label={isFavorite ? t('removeFavorite') : t('addFavorite')}
+                aria-pressed={isFavorite}
+                onClick={onToggleFavorite}
+              >
+                <Star size={14} weight={isFavorite ? 'fill' : 'regular'} />
+              </button>
+            </div>
+          </header>
+
+          <div className="complexity-specs">
+            <Spec label={t('best')} value={algorithm.complexity.best} />
+            <Spec label={t('average')} value={algorithm.complexity.average} accent />
+            <Spec label={t('worst')} value={algorithm.complexity.worst} />
+            <Spec label={t('memory')} value={algorithm.complexity.memory} />
+          </div>
+          {algorithm.complexity.note ? <p className="complexity-caveat">{algorithm.complexity.note}</p> : null}
+
+          {algorithm.kind === 'sort' ? (
+            <div className="trait-row">
+              <Trait label={t('stableTrait')} enabled={algorithm.traits.stable} />
+              <Trait label={t('inPlaceTrait')} enabled={algorithm.traits.inPlace} />
+              <Trait label={t('recursiveTrait')} enabled={algorithm.traits.recursive} />
+            </div>
+          ) : null}
+
+          {algorithm.useCases?.length ? (
+            <div className="use-cases-block">
+              <div className="use-cases-head">
+                <span className="library-label">{t('useCasesTitle')}</span>
+                {algorithm.scaleSuitability ? (
+                  <span className={`scale-badge scale-${algorithm.scaleSuitability}`}>
+                    {scaleLabel(algorithm.scaleSuitability, t)}
+                  </span>
+                ) : null}
+              </div>
+              {algorithm.useCases.map((useCase, index) => (
+                <div className="use-case" key={index}>
+                  <strong>{useCase.title}</strong>
+                  <p>{useCase.context}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="algorithm-explanation">
+            <span className="library-label">{t('howItWorks')}</span>
+            {algorithm.explanation.map((step, index) => (
+              <div key={step}>
+                <span>{index + 1}</span>
+                <p>{step}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="algorithm-limitation">
+            <span>{t('tradeOff')}</span>
+            <p>{algorithm.limitation}</p>
+          </div>
+
+          <div className="lesson-launch">
+            <button type="button" onClick={() => setLessonOpen(true)}>
+              <Compass size={15} /> {t('lessonStart')}
+            </button>
+          </div>
+
+          {algorithm.kind === 'sort' ? (
+            <div className="algorithm-actions">
+              <button className="primary-library-action" type="button" onClick={() => onOpen(algorithm)}>
+                {t('visualize')} <ArrowRight size={15} />
+              </button>
+              <button type="button" onClick={() => onCompare(algorithm)}>
+                <GitDiff size={15} /> {t('addBenchmark')}
+              </button>
+              <button type="button" onClick={() => onOpen(algorithm, algorithm.examples.worstCase)}>
+                <Flask size={15} /> {t('tryWorst')}
+              </button>
+              <button type="button" onClick={() => onAnalyze(algorithm)}>
+                <ChartLineUp size={15} /> {t('analyze')}
+              </button>
+            </div>
+          ) : (
+            <DemoRunner key={algorithm.id} algorithm={algorithm} language={language} onLanguageChange={setLanguage} />
+          )}
+          {algorithm.kind === 'sort' ? (
+            <LanguageSource language={language} onLanguageChange={setLanguage} sourceInfo={sourceInfo} />
+          ) : null}
+        </>
       )}
-      {algorithm.kind === 'sort' ? (
-        <LanguageSource language={language} onLanguageChange={setLanguage} sourceInfo={sourceInfo} />
-      ) : null}
     </article>
   );
 }
