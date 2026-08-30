@@ -56,6 +56,7 @@ export function LibraryView({ onOpen, onCompare, onAnalyze, onOpenLab, initialId
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(initialId && CATALOG_ALGORITHM_BY_ID[initialId] ? initialId : 'bubble');
   const [mobileDetail, setMobileDetail] = useState(Boolean(initialId && CATALOG_ALGORITHM_BY_ID[initialId]));
+  const [lessonFor, setLessonFor] = useState<string | null>(null);
   const selected = localizeAlgorithm(CATALOG_ALGORITHM_BY_ID[selectedId], locale);
   const localized = useMemo(() => {
     const byId = new Map<string, ReturnType<typeof localizeAlgorithm>>();
@@ -240,6 +241,7 @@ export function LibraryView({ onOpen, onCompare, onAnalyze, onOpenLab, initialId
         </div>
 
         <AlgorithmDetail
+          key={selected.id}
           algorithm={selected}
           isFavorite={favorites.favorites.includes(selected.id)}
           onToggleFavorite={() => favorites.toggle(selected.id)}
@@ -247,14 +249,18 @@ export function LibraryView({ onOpen, onCompare, onAnalyze, onOpenLab, initialId
           onOpen={onOpen}
           onCompare={onCompare}
           onAnalyze={onAnalyze}
+          lessonOpen={lessonFor === selected.id}
+          onLessonOpen={() => setLessonFor(selected.id)}
+          onLessonClose={() => setLessonFor(null)}
         />
       </div>
       {advisorOpen ? (
         <AdvisorPanel
-          onOpen={(algorithm) => {
+          onOpen={(algorithm, opts) => {
             selectAlgorithm(algorithm.id);
             setAdvisorOpen(false);
             setMobileDetail(true);
+            if (opts?.lesson) setLessonFor(algorithm.id);
           }}
           onClose={() => setAdvisorOpen(false)}
         />
@@ -279,6 +285,9 @@ function AlgorithmDetail({
   onOpen,
   onCompare,
   onAnalyze,
+  lessonOpen,
+  onLessonOpen,
+  onLessonClose,
 }: {
   algorithm: CatalogAlgorithmDefinition;
   isFavorite: boolean;
@@ -287,15 +296,17 @@ function AlgorithmDetail({
   onOpen: LibraryViewProps['onOpen'];
   onCompare: LibraryViewProps['onCompare'];
   onAnalyze: LibraryViewProps['onAnalyze'];
+  lessonOpen: boolean;
+  onLessonOpen: () => void;
+  onLessonClose: () => void;
 }) {
   const { t } = useI18n();
   const [language, setLanguage] = useState<SupportedLanguage>('python');
-  const [lessonOpen, setLessonOpen] = useState(false);
   const sourceInfo = sourceForAlgorithm(algorithm.id, algorithm.source, language);
   return (
     <article className="algorithm-detail">
       {lessonOpen ? (
-        <LessonView algorithm={algorithm} onClose={() => setLessonOpen(false)} />
+        <LessonView algorithm={algorithm} onClose={onLessonClose} />
       ) : (
         <>
           <button className="library-back" type="button" onClick={onBack}>
@@ -379,7 +390,7 @@ function AlgorithmDetail({
           </div>
 
           <div className="lesson-launch">
-            <button type="button" onClick={() => setLessonOpen(true)}>
+            <button type="button" onClick={onLessonOpen}>
               <Compass size={15} /> {t('lessonStart')}
             </button>
           </div>

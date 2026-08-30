@@ -7,8 +7,19 @@ describe('ranking engine', () => {
     expect(SCENARIOS.length).toBeGreaterThanOrEqual(6);
     for (const scenario of SCENARIOS) {
       expect(scenario.id.length).toBeGreaterThan(0);
+      expect(scenario.label.length).toBeGreaterThan(0);
+      // Teaching scenarios rank every algorithm and so may omit filter tags.
+      if (scenario.lesson) continue;
       expect(scenario.requiredTags.length).toBeGreaterThan(0);
     }
+  });
+
+  it('learn scenario ranks every algorithm and marks itself as a lesson', () => {
+    const scenario = SCENARIOS.find((s) => s.id === 'learn-algorithm')!;
+    expect(scenario.lesson).toBe(true);
+    const ranked = rankForScenario(scenario, CATALOG_ALGORITHMS);
+    expect(ranked.length).toBe(CATALOG_ALGORITHMS.length);
+    expect(ranked[0].bullets.length).toBeGreaterThan(0);
   });
 
   it('ranks algorithms for a scenario with a non-empty, sorted result', () => {

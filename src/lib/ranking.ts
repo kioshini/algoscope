@@ -9,6 +9,7 @@ export type ScenarioDef = {
   requiredTags: string[];
   preferScale?: 'small' | 'large' | 'all';
   verdict: string;
+  lesson?: boolean;
 };
 
 export type RankBullet = {
@@ -94,6 +95,14 @@ export const SCENARIOS: ScenarioDef[] = [
     problem: 'Dynamic Programming',
     requiredTags: ['capacity', 'optimization', 'sequence'],
     verdict: 'Динамическое программирование даёт решение за псевдополиномиальное время.',
+  },
+  {
+    id: 'learn-algorithm',
+    label: 'Хочу понять алгоритм',
+    description: 'Изучить, как работает алгоритм и за какие свойства отвечает.',
+    requiredTags: [],
+    verdict: 'Любой алгоритм — выберите, какому научиться.',
+    lesson: true,
   },
 ];
 

@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, Compass, X } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import type { CatalogAlgorithmDefinition } from '../../algorithms/types';
@@ -6,6 +6,7 @@ import { useI18n } from '../../lib/i18n';
 import { lessonMetadata } from '../../lib/lesson';
 import { buildQuizQuestions, type LessonQuestion } from '../../lib/quiz';
 import { algorithmWorker } from '../../lib/worker-client';
+import type { TraceEvent, TraceResult } from '../../types';
 
 type LessonViewProps = {
   algorithm: CatalogAlgorithmDefinition;
@@ -132,8 +133,8 @@ function LessonIdea({ meta }: { meta: LessonMeta }) {
 }
 
 function LessonWatch({ algorithm }: { algorithm: CatalogAlgorithmDefinition }) {
-  const { t } = useI18n();
-  const [trace, setTrace] = useState<{ source: string; values: number[] } | null>(null);
+  const { t, format } = useI18n();
+  const [trace, setTrace] = useState<TraceResult | null>(null);
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(true);
@@ -146,11 +147,12 @@ function LessonWatch({ algorithm }: { algorithm: CatalogAlgorithmDefinition }) {
     let active = true;
     setBusy(true);
     setError(null);
+    setTrace(null);
     void algorithmWorker
       .trace(algorithm.source, algorithm.examples.default)
       .then((result) => {
         if (!active) return;
-        setTrace({ source: algorithm.source, values: result.result });
+        setTrace(result);
         setStep(0);
       })
       .catch((cause: unknown) => {
@@ -170,22 +172,130 @@ function LessonWatch({ algorithm }: { algorithm: CatalogAlgorithmDefinition }) {
   if (error) return <div className="lesson-trace lesson-trace-error">{error}</div>;
   if (busy || !trace) return <div className="lesson-trace lesson-trace-loading">{t('lessonTraceLoading')}</div>;
 
+  const maxStep = Math.max(0, trace.events.length - 1);
+  const current = trace.events[Math.min(step, maxStep)] ?? null;
+  const currentValues = current?.values.length ? current.values : trace.result;
+
   return (
     <div className="lesson-trace">
       <p className="lesson-watch-hint">{t('lessonWatchHint')}</p>
+      <div className="lesson-trace-stage" aria-label={currentValues.join(', ')}>
+        {currentValues.map((value, index) => {
+          const active = current?.index === index || current?.leftIndex === index || current?.rightIndex === index;
+          return (
+            <div className={`lesson-bar-column ${active ? `active ${current?.type ?? ''}` : ''}`} key={index}>
+              <span className="lesson-bar-value">{value}</span>
+              <span className="lesson-bar" />
+              <span className="lesson-bar-index">{index}</span>
+            </div>
+          );
+        })}
+      </div>
       <div className="lesson-trace-scrub">
-        <button type="button" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0}>
+        <button
+          type="button"
+          onClick={() => setStep((currentStep) => Math.max(0, currentStep - 1))}
+          disabled={step === 0}
+        >
           {t('playbackPrevious')}
         </button>
-        <span>{step + 1}</span>
-        <button type="button" onClick={() => setStep((current) => current + 1)}>
+        <span>
+          {String(step + 1).padStart(3, '0')} / {String(maxStep + 1).padStart(3, '0')}
+        </span>
+        <button
+          type="button"
+          onClick={() => setStep((currentStep) => Math.min(maxStep, currentStep + 1))}
+          disabled={step >= maxStep}
+        >
           {t('playbackNext')}
         </button>
       </div>
-      <p className="lesson-trace-note">{trace.values.join(', ')}</p>
-      <p className="lesson-trace-note">{t('lessonTraceReady')}</p>
+      <div className="lesson-event-summary">
+        <span className={`event-chip event-${current?.type ?? 'idle'}`}>{current?.type ?? t('lessonTraceReady')}</span>
+        <p>{current ? eventSummary(current, t, format) : t('lessonTraceReady')}</p>
+      </div>
+      {current ? <LessonBeacon event={current} /> : null}
     </div>
   );
+}
+
+function LessonBeacon({ event }: { event: TraceEvent }) {
+  const { t, format } = useI18n();
+  const key = beaconKey(event.type);
+  return (
+    <div className="lesson-beacon">
+      <Compass size={13} weight="fill" />
+      <span>{beaconText(key, event, t, format)}</span>
+    </div>
+  );
+}
+
+type BeaconKey = 'compare' | 'write' | 'read' | 'call' | 'return' | 'line' | 'done';
+
+function beaconKey(type: TraceEvent['type']): BeaconKey {
+  return type === 'compare' ||
+    type === 'write' ||
+    type === 'read' ||
+    type === 'call' ||
+    type === 'return' ||
+    type === 'done'
+    ? type
+    : 'line';
+}
+
+function beaconText(
+  key: BeaconKey,
+  event: TraceEvent,
+  t: ReturnType<typeof useI18n>['t'],
+  format: ReturnType<typeof useI18n>['format'],
+): string {
+  switch (key) {
+    case 'compare':
+      return format('lessonBeaconCompare', {
+        left: event.leftValue ?? '?',
+        op: event.op ?? '?',
+        right: event.rightValue ?? '?',
+      });
+    case 'write':
+      return format('lessonBeaconWrite', { value: event.next ?? '?', index: event.index ?? '?' });
+    case 'read':
+      return format('lessonBeaconRead', { index: event.index ?? '?' });
+    case 'call':
+      return format('lessonBeaconCall', { fn: event.function ?? '?' });
+    case 'return':
+      return format('lessonBeaconReturn', { fn: event.function ?? '?' });
+    case 'done':
+      return t('lessonBeaconDone');
+    default:
+      return format('lessonBeaconLine', { line: event.line ?? '?' });
+  }
+}
+
+function eventSummary(
+  event: TraceEvent,
+  t: ReturnType<typeof useI18n>['t'],
+  format: ReturnType<typeof useI18n>['format'],
+): string {
+  switch (event.type) {
+    case 'compare':
+      return format('traceCompare', {
+        left: event.leftValue ?? '?',
+        op: event.op ?? '?',
+        right: event.rightValue ?? '?',
+      });
+    case 'read':
+      return format('traceRead', { index: event.index ?? '?' });
+    case 'write':
+      return format('traceWrite', { value: event.next ?? '?', index: event.index ?? '?' });
+    case 'call':
+      return format('traceEnter', { fn: event.function ?? '?' });
+    case 'return':
+      return format('traceReturn', { fn: event.function ?? '?' });
+    case 'done':
+      return t('traceComplete');
+    default:
+      return event.line ? format('traceExecuteLine', { line: event.line }) : t('traceNextOperation');
+  }
 }
 
 function LessonQuiz({

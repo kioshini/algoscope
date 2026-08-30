@@ -6,7 +6,7 @@ import { localizeAlgorithm, useI18n, type TranslationKey } from '../lib/i18n';
 import type { CatalogAlgorithmDefinition } from '../algorithms/types';
 
 type AdvisorPanelProps = {
-  onOpen: (algorithm: CatalogAlgorithmDefinition) => void;
+  onOpen: (algorithm: CatalogAlgorithmDefinition, opts?: { lesson?: boolean }) => void;
   onClose: () => void;
   initialScenarioId?: string | null;
   matchLabel?: string | null;
@@ -15,10 +15,10 @@ type AdvisorPanelProps = {
 export function AdvisorPanel({ onOpen, onClose, initialScenarioId = null, matchLabel = null }: AdvisorPanelProps) {
   const { t, locale } = useI18n();
   const [scenarioId, setScenarioId] = useState<string | null>(initialScenarioId);
+  const scenario = SCENARIOS.find((s) => s.id === scenarioId);
   const results = useMemo(() => {
-    const scenario = SCENARIOS.find((s) => s.id === scenarioId);
     return scenario ? rankForScenario(scenario, CATALOG_ALGORITHMS).slice(0, 5) : [];
-  }, [scenarioId]);
+  }, [scenario]);
 
   return (
     <div
@@ -77,6 +77,14 @@ export function AdvisorPanel({ onOpen, onClose, initialScenarioId = null, matchL
                         <button type="button" onClick={() => onOpen(result.algorithm as CatalogAlgorithmDefinition)}>
                           Open <ArrowRight size={12} />
                         </button>
+                        {scenario?.lesson ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpen(result.algorithm as CatalogAlgorithmDefinition, { lesson: true })}
+                          >
+                            {t('lessonStart')} <ArrowRight size={12} />
+                          </button>
+                        ) : null}
                       </div>
                       <div className="rank-item-body">
                         <p>{result.verdict}</p>
