@@ -5,6 +5,7 @@ import type { TraceResult } from '../types';
 
 type MetricsPanelProps = {
   trace: TraceResult | null;
+  /** Full-stream index already resolved from the visual step by the caller. */
   step: number;
 };
 

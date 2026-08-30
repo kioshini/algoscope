@@ -8,6 +8,35 @@ const MODELS = [
   { label: 'O(n³)', evaluate: (n: number) => n * n * n },
 ] as const;
 
+/** Events that represent a real algorithm step rather than a source-line trace. */
+export type SignificantType = 'compare' | 'write' | 'call' | 'return' | 'done';
+
+export function isSignificant(event: Pick<TraceEvent, 'type'>): boolean {
+  return event.type !== 'line' && event.type !== 'read';
+}
+
+/** Full-stream indexes that hold significant events, in order. */
+export function significantIndexes(events: readonly TraceEvent[]): number[] {
+  const indexes: number[] = [];
+  for (let index = 0; index < events.length; index += 1) {
+    if (isSignificant(events[index])) indexes.push(index);
+  }
+  return indexes;
+}
+
+/** The significant events in order, for step navigation and display. */
+export function significantEvents(events: readonly TraceEvent[]): TraceEvent[] {
+  return significantIndexes(events).map((index) => events[index]);
+}
+
+/** The full-stream index of the significant event at the given visual step. */
+export function significantFullIndex(events: readonly TraceEvent[], visualStep: number): number {
+  const indexes = significantIndexes(events);
+  if (indexes.length === 0) return Math.max(0, Math.min(events.length - 1, visualStep));
+  const clamped = Math.max(0, Math.min(indexes.length - 1, visualStep));
+  return indexes[clamped];
+}
+
 export function metricsAt(events: TraceEvent[], step = events.length - 1): TraceMetrics {
   const metrics: TraceMetrics = { reads: 0, writes: 0, comparisons: 0, calls: 0, total: 0 };
   const last = Math.min(step, events.length - 1);

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import type { CatalogAlgorithmDefinition } from '../../algorithms/types';
 import { useI18n } from '../../lib/i18n';
+import { significantEvents } from '../../lib/complexity';
 import { lessonMetadata } from '../../lib/lesson';
 import { buildQuizQuestions, type LessonQuestion } from '../../lib/quiz';
 import { algorithmWorker } from '../../lib/worker-client';
@@ -172,8 +173,9 @@ function LessonWatch({ algorithm }: { algorithm: CatalogAlgorithmDefinition }) {
   if (error) return <div className="lesson-trace lesson-trace-error">{error}</div>;
   if (busy || !trace) return <div className="lesson-trace lesson-trace-loading">{t('lessonTraceLoading')}</div>;
 
-  const maxStep = Math.max(0, trace.events.length - 1);
-  const current = trace.events[Math.min(step, maxStep)] ?? null;
+  const visualEvents = significantEvents(trace.events);
+  const maxStep = Math.max(0, visualEvents.length - 1);
+  const current = visualEvents[Math.min(step, maxStep)] ?? null;
   const currentValues = current?.values.length ? current.values : trace.result;
 
   return (

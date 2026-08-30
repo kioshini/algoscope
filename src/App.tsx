@@ -1,5 +1,5 @@
 import { WarningCircle } from '@phosphor-icons/react';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { ALGORITHM_BY_ID } from './algorithms/catalog';
 import { CATALOG_ALGORITHM_BY_ID } from './algorithms/full-catalog';
 import type { AlgorithmDefinition, AlgorithmId, CatalogAlgorithmDefinition } from './algorithms/types';
@@ -19,6 +19,7 @@ import { decodeShareState, encodeShareState } from './lib/share-state';
 import { useI18n } from './lib/i18n';
 import { useFocusTrap } from './lib/focus-trap';
 import { detectScenarioFromCode, scenarioFor } from './lib/code-analysis';
+import { significantEvents, significantFullIndex } from './lib/complexity';
 import { SkeletonRows } from './components/Skeleton';
 import { useAppStore } from './store/use-app-store';
 import { useKeyboardShortcuts } from './hooks/use-keyboard-shortcuts';
@@ -68,12 +69,15 @@ export default function App() {
   const toolsRef = useRef<HTMLElement>(null);
   useFocusTrap(toolsRef, toolsOpen, () => setToolsOpen(false));
   const input = safeParseInput(store.inputText);
-  const traceEvent =
-    store.trace?.events[Math.min(store.currentStep, Math.max(0, store.trace.events.length - 1))] ?? null;
+  const traceVisualCount = useMemo(() => significantEvents(store.trace?.events ?? []).length, [store.trace]);
+  const referenceVisualCount = useMemo(
+    () => significantEvents(store.referenceTrace?.events ?? []).length,
+    [store.referenceTrace],
+  );
+  const traceEvent = store.trace?.events[significantFullIndex(store.trace.events, store.currentStep)] ?? null;
   const maximumStep =
-    store.mode === 'compare'
-      ? Math.max(store.trace?.events.length ?? 0, store.referenceTrace?.events.length ?? 0) - 1
-      : (store.trace?.events.length ?? 1) - 1;
+    store.mode === 'compare' ? Math.max(traceVisualCount, referenceVisualCount) - 1 : (traceVisualCount || 1) - 1;
+  const metricsStep = store.trace ? significantFullIndex(store.trace.events, store.currentStep) : store.currentStep;
   const busy = store.status === 'running' || store.status === 'loading';
   const executing = store.status === 'running';
 
@@ -463,7 +467,7 @@ export default function App() {
                     running={executing}
                   />
                 </section>
-                <MetricsPanel trace={store.trace} step={store.currentStep} />
+                <MetricsPanel trace={store.trace} step={metricsStep} />
               </>
             ) : null}
 
@@ -571,8 +575,9 @@ function ChallengeCard({
 }) {
   const { t, format } = useI18n();
   const [answer, setAnswer] = useState<string | null>(null);
-  const expected = trace.events[Math.min(step + 1, trace.events.length - 1)]?.type || 'done';
-  const choices = [...new Set([expected, 'compare', 'read', 'write', 'line'])].slice(0, 4);
+  const next = significantEvents(trace.events)[Math.min(step + 1, significantEvents(trace.events).length - 1)];
+  const expected = next?.type || 'done';
+  const choices = [...new Set([expected, 'compare', 'write', 'call', 'return'])].slice(0, 4);
   return (
     <aside className="challenge-card">
       <span>{t('challengeTitle')}</span>
